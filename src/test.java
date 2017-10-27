@@ -4,7 +4,10 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.attribute.BasicFileAttributes;
+import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 
 import com.drew.imaging.ImageMetadataReader;
@@ -104,6 +107,8 @@ public class test {
 		
 		// LocalDateTime need Java 8
 		LocalDateTime dateTime = null;
+		//ZonedDateTime dateTime = null;
+		
 		if(mediaDate != null){
 			// Example 
 			// [Exif IFD0] Date/Time - 2017:10:23 12:31:41
@@ -117,17 +122,65 @@ public class test {
 			}
 			
 		} else {
-			System.out.println("Cannot find date from file "+currentFile.getAbsolutePath());
-			return null;
+		
+			System.out.println("Cannot find date from file metadata "+currentFile.getAbsolutePath());
+			
+			// Then (best effort) use lastModifiedTime
+			Path filePath = currentFile.toPath();
+			BasicFileAttributes attr;
+			try {
+				attr = Files.readAttributes(filePath, BasicFileAttributes.class);
+				//System.out.println("creationTime: " + attr.creationTime());
+				//System.out.println("lastAccessTime: " + attr.lastAccessTime());
+				//System.out.println("lastModifiedTime: " + attr.lastModifiedTime());
+				
+				Instant modifiedTime = attr.lastModifiedTime().toInstant();
+				try{
+					
+					ZonedDateTime zdt = ZonedDateTime.ofInstant(modifiedTime, ZoneId.of("GMT+8"));
+					//dateTime = zdt;
+					//String time = "";
+					//time = time + "-" + zdt.getYear();
+					//time = time + "-" + zdt.getMonthValue();
+					//time = time + "-" + zdt.getDayOfMonth();
+					//time = time + "-" + zdt.getHour();
+					//time = time + "-" + zdt.getMinute();
+					//time = time + "-" + zdt.getSecond();
+					//System.out.println("Zoned Time is: " + time);
+					
+					//DateTimeFormatter formatter = DateTimeFormatter.ofPattern(DateTimeFormatter.ISO_INSTANT);
+					//dateTime = LocalDateTime.parse(mediaDate, DateTimeFormatter.ISO_INSTANT);
+					
+					String year = String.valueOf(zdt.getYear());
+					String month = String.valueOf(zdt.getMonthValue());
+					if(month.length()==1)	month = "0" + month;
+					String date = String.valueOf(zdt.getDayOfMonth());
+					if(date.length()==1)	date = "0" + date;
+					String Folder = currentDir + java.io.File.separator + "Media-Processed" + java.io.File.separator + year + java.io.File.separator + month + java.io.File.separator + date;
+					//System.out.println("Return the target folder: "+ Folder);
+					return Folder;
+					
+				} catch (Exception e){
+					e.printStackTrace();
+					return null;
+				}
+				
+			} catch (IOException e1) {
+				
+				e1.printStackTrace();
+			}
+			
 		}
 		
 		if(dateTime != null){
+			//System.out.println("dateTime is not null");
 			String year = String.valueOf(dateTime.getYear());
 			String month = String.valueOf(dateTime.getMonthValue());
 			if(month.length()==1)	month = "0" + month;
 			String date = String.valueOf(dateTime.getDayOfMonth());
 			if(date.length()==1)	date = "0" + date;
 			String Folder = currentDir + java.io.File.separator + "Media-Processed" + java.io.File.separator + year + java.io.File.separator + month + java.io.File.separator + date;
+			//System.out.println("Return the target folder: "+ Folder);
 			return Folder;
 		} else {
 			System.out.println("dateTime object should not be null!");
